@@ -1,0 +1,33 @@
+{
+  "name": "extreme-pizza-express",
+  "version": "1.0.0",
+  "description": "A place to admire pizzas",
+  "main": "server.js",
+  "scripts": {
+    "lint": "node_modules/.bin/eslint public/**.js lib/**.js **.js || true",
+    "lintf": "node_modules/.bin/eslint public/**.js lib/**.js **.js  --fix || true"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/turingschool-examples/extreme-pizza-express.git"
+  },
+  "keywords": [
+    "express",
+    "pizza",
+    "yum",
+    "casserole"
+  ],
+  "author": "Romeeka Gayhart",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/turingschool-examples/extreme-pizza-express/issues"
+  },
+  "homepage": "https://github.com/turingschool-examples/extreme-pizza-express#readme",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2"
+  },
+  "devDependencies": {
+    "eslint": "^3.17.1"
+  }
+}
