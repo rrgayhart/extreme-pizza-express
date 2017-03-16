@@ -24,15 +24,24 @@ In that scenario, we _do not_ want it to just start up all on it's own.
 What we need to do is to add some introspection and see if our application is being run directly or being required from another file. We can do this by modifying our server slightly.
 
 ```js
+// server.js
+
 if (!module.parent) {
-  http.createServer(app)
-    .listen(port, () => {
-      console.log(`Listening on port ${port}.`);
-    });
+  app.listen(app.get('port'), () => {
+    console.log(`${app.locals.title} is running on ${app.get('port')}.`);
+  });
 }
 ```
 
 If `server.js` is being run directly, then it has no parent and we should fire up the server. But, if it's being required, then the file requiring `server.js` is its parent and we should not spin up the server automatically.
+
+We will also need to make sure we can access the `app` by exporting it at the bottom of the page.
+
+```js
+// server.js 
+
+module.exports = app;
+```
 
 ### Setting Up Testing
 
@@ -69,37 +78,148 @@ In `tests/server-test.js`, I'm going to write my first test.
 
 ```js
   // tests/server-test.js
-  const assert = require('chai').assert;
-  const app = require('../server');
+  const chai = require('chai');
+  const expect = chai.expect;
+
+  const app = require('../server.js');
 ```
 
 Just to keep our spirits up, let's start with the simplest possible test.
 
 ```js
-const assert = require('chai').assert;
-const app = require('../server');
+const chai = require('chai');
+const expect = chai.expect;
+
+const app = require('../server.js');
 
 describe('Server', () => {
-
   it('should exist', () => {
-    assert(app);
+    expect(app).to.exist;
   });
-
 });
 ```
 
-Now, we'll want to start our server up before we run our tests. I don't want to worry about my testing version trying to use the same port as my development server. So, I'll pick another port that makes me happy. (You might also consider reading a port from a environment variable or passing one in as a command line argument. I decided not to in the name of not adding too much complexity to this tutorial.)
+### Updating Our Linter
+
+Yay! We wrote some test code. Let's make sure our linter can handle the testing fury.
+
+Remember that we run our linter
+
+```
+  npm run lint
+```
+
+If you try that now, you'll see that we don't get any errors. I'd like to think I'm just that good at coding, but let's be real here. Most likely, my linter isn't set up to lint the test files.
+
+We can fix that by adding that directory to our linter scripts: `tests/**.js`
 
 ```js
-before(done => {
-  this.port = 9876;
-  this.server = app.listen(this.port, (err, result) => {
-    if (err) { return done(err); }
-    done();
-  });
-});
+// package.json
+    "lint": "node_modules/.bin/eslint public/**.js lib/**.js tests/**.js **.js || true",
+    "lintf": "node_modules/.bin/eslint public/**.js lib/**.js tests/**.js **.js  --fix || true"
+```
 
-after(() => {
-  this.server.close();
+Is there a cleaner/better way to do this? Absolutely. PRs accepted :D
+
+Now when I run the linter, I get a bunch of errors.
+
+```bash
+   8:1   error  'describe' is not defined                     no-undef
+   9:3   error  'it' is not defined                           no-undef
+  10:25  error  Missing semicolon                             semi
+  13:3   error  'describe' is not defined                     no-undef
+  14:5   error  'it' is not defined                           no-undef
+```
+
+Well, that's no good. The semi colon error I'm into, but describe and it are part of mocha. What the heck. I guess I can't lint my testing files?
+
+Actually, no, eslint just needs to be told about 'mocha' being a possible environment. [Find the answer in the docs here](http://eslint.org/docs/user-guide/configuring).
+
+In my eslintrc file, I need to add mocha to the env section:
+
+```json
+"env": {
+        "browser": true,
+        "node": true,
+        "es6": true,
+        "mocha": true
+    },
+```
+
+### Making Requests to Our Server
+
+Now that we have our server running in our tests. We can make requests to it. We could totally do this using the built-in `http` module but that's pretty low-level. Let's use a library called `chai-http`.
+
+```
+  npm install chai-http --save-dev
+```
+
+In `tests/server-test.js`, we'll require chai-http.
+
+```js
+  const chaiHttp = require('chai-http');
+```
+
+We also need to let Chai know that it should be using this package. Do so by adding:
+
+```js
+  chai.use(chaiHttp);
+```
+
+Alright, we've set everything up. Now, we can write our first test. Our app is pretty simple. So, let's start by making sure that we have a `/` endpoint and that it returns a 200 response.
+
+Nested in our `describe('Server')` section, we'll add a `describe('GET /')` section as well. Our test suite will look something like this:
+
+```js
+const chai = require('chai');
+const expect = chai.expect;
+const chaiHttp = require('chai-http');
+const app = require('../server.js');
+
+chai.use(chaiHttp);
+
+describe('Server', () => {
+  it('should exist', () => {
+    expect(app).to.exist;
+  });
+
+  describe('GET /', function() {
+    // test to go here
+  });
+
 });
 ```
+
+> Take a minute right now to skim over the [chai-http documentation](http://chaijs.com/plugins/chai-http/). You'll notice that `chai-http` is kind of like a friendly wrapper powered by something called [superagent](https://github.com/visionmedia/superagent).
+
+> If you are working in a code base where you aren't using Chai, you would want to use superagent or event a library called [Request](https://github.com/request/request) directly instead.
+
+> The original [pizza express](https://github.com/turingschool-examples/pizza-express) project uses Request. So feel free to check that out if you want to see a different way to implement things.
+
+Now, we'll write a test that will send a request to the `/` endpoint on our server and verify that we did in fact receive a 200 and that we received html.
+
+```js
+  it('should return html successfully', function(done) {
+    chai.request(app)
+    .get('/')
+    .end(function(err, res) {
+      if (err) { done(err); }
+      expect(res).to.have.status(200);
+      expect(res).to.be.html;
+      done();
+    });
+  });
+```
+
+Okay, so what's going on here?
+
+Recall that for asynchronous test maneuvers, we can use `done()` to let Mocha know when we're ready to move on.
+
+In Node, it's common for callback functions to take an error object as their first parameter if anything went wrong so that you can deal with it. So, if there is an error, then we'll end with that error. Otherwise, we'll move on.
+
+#### Quick Experiment
+
+Change the code within your server to create an error. Run the test suite and watch it fail. Now, comment out the error handling we just added and watch it fail. Pay attention to the differences between the two error messages.
+
+### Testing An API
+
