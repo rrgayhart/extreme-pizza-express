@@ -19,6 +19,19 @@ app.get('/api/v1/pizzas', (request, response) => {
   response.status(200).json(app.locals.pizzas);
 });
 
+app.get('/api/v1/pizza/:id', (request, response) => {
+  const { id } = request.params;
+  const pizza = app.locals.pizzas.find(p => p.id == id);
+  if (!pizza) { return response.sendStatus(404); }
+  response.status(200).json(pizza);
+});
+
+app.post('/api/v1/pizzas', (request, response) => {
+  const pizza = request.body;
+  app.locals.pizzas.push(pizza);
+  response.status(200).json(pizza);
+});
+
 app.use(express.static(__dirname + '/public'));
 
 if (!module.parent) {
