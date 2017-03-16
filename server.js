@@ -15,11 +15,15 @@ app.use(express.static(path.join(__dirname, '/public')));
 
 const port = process.env.PORT || 3000;
 
-http.createServer(app)
-  .listen(port, () => {
-    console.log(`Listening on port ${port}.`);
-  });
+if (!module.parent) {
+  http.createServer(app)
+    .listen(port, () => {
+      console.log(`Listening on port ${port}.`);
+    });
+}
 
 app.get('/', (request, response) => {
   response.sendfile(__dirname + '/public/index.html');
 });
+
+module.exports = app;
