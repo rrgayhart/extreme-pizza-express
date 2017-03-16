@@ -223,3 +223,195 @@ Change the code within your server to create an error. Run the test suite and wa
 
 ### Testing An API
 
+Let's go ahead and generate a CRUD API in our minds.
+
+Here are some endpoints we thinks we might want:
+
+```js
+// GET api/v1/pizzas - Get all the pizzas we've got
+// POST api/v1/pizzas - Create a pizza
+// GET api/v1/pizza/:id - Get a specific pizza
+```
+
+### Testing `api/v1/pizzas`
+
+So let's go ahead and test that first endpoint. All pizzas.
+
+Let's add the following to our test file:
+
+```js
+  describe('GET /api/v1/pizzas', function() {
+    it('should return all pizzas', function(done) {
+      chai.request(app)
+      .get('/api/v1/pizzas')
+      .end(function(err, res) {
+        if (err) { done(err); }
+        expect(res).to.have.status(200);
+        expect(res).to.be.json;
+        expect(res.body).to.be.a('array');
+        expect(res.body.length).to.equal(4);
+        expect(res.body[0]).to.have.property('type');
+        done();
+      });
+    });
+  });
+```
+
+As we get the test passing, we'll break down what each line is doing.
+
+The first error that we get is 
+
+```
+  Error: Not Found
+```
+
+Which makes sense, right? We don't have a route created. Do so by adding the following to your `server.js`
+
+```
+  app.get('/api/v1/pizzas', (request, response) => {
+
+  });
+```
+
+The next error that we get is `Error: Timeout of 2000ms exceeded...`
+
+We never responded on the server side. If we copied the response from our `GET '/'` route, we would see an error `Uncaught AssertionError: expected 'text/html; charset=UTF-8' to include 'application/json'`
+
+So instead, let's respond with:
+
+```js
+  app.get('/api/v1/pizzas', (request, response) => {
+    response.status(200).json([]);
+  });
+```
+
+Now the error that we get is more specific: `Uncaught AssertionError: expected 0 to equal 4`
+
+We have passed the requirements that we respond, give a 200 and return a json response with an Array... but now we need to populate that Array.
+
+For the time being, let's go ahead and store our pizzas in `app.locals`. This will be easy for us to populate from our tests.
+
+In `server.js` - let's add an empty Array for pizzas to live in below where we set the port and title:
+
+```js
+// server.js
+   app.set('port', process.env.PORT || 3000);
+   app.locals.title = 'Extreme Pizza Box';
+  app.locals.pizzas = [];
+```
+
+And have our API respond with that instead:
+
+```js
+app.get('/api/v1/pizzas', (request, response) => {
+  response.status(200).json(app.locals.pizzas);
+});
+```
+
+We're still going to get the same test error, but now we can change things!
+
+Let's add a `beforeEach` block to our `'GET /api/v1/pizzas'` tests
+
+```js
+    beforeEach(function(done){
+      const pizzas = [{type: 'cheese'},
+                      {type: 'meat'},
+                      {type: 'pineapple'},
+                      {type: 'sardine'}];
+      app.locals.pizzas = pizzas;
+      done();
+    });
+```
+
+This will populate the 'database' with all the pizzas we could ever want or need.
+
+We'll want to also add a block to reset the 'database' to being empty between tests.
+
+```js
+    afterEach(function(done){
+      app.locals.pizzas = [];
+      done();
+    });
+```
+
+Our entire test file should look like this now:
+
+```js
+const chai = require('chai');
+const expect = chai.expect;
+const chaiHttp = require('chai-http');
+const app = require('../server.js');
+
+chai.use(chaiHttp);
+
+describe('Server', () => {
+  it('should exist', () => {
+    expect(app).to.exist;
+  });
+
+  describe('GET /', function() {
+    it('should return a 200 and html', function(done) {
+      chai.request(app)
+      .get('/')
+      .end(function(err, res) {
+        if (err) { done(err); }
+        expect(res).to.have.status(200);
+        expect(res).to.be.html;
+        done();
+      });
+    });
+  });
+
+  describe('GET /api/v1/pizzas', function() {
+    beforeEach(function(done){
+      const pizzas = [{type: 'cheese'},
+                      {type: 'meat'},
+                      {type: 'pineapple'},
+                      {type: 'sardine'}];
+      app.locals.pizzas = pizzas;
+      done();
+    });
+
+    afterEach(function(done){
+      app.locals.pizzas = [];
+      done();
+    });
+
+    it('should return all pizzas', function(done) {
+      chai.request(app)
+      .get('/api/v1/pizzas')
+      .end(function(err, res) {
+        if (err) { done(err); }
+        expect(res).to.have.status(200);
+        expect(res).to.be.json;
+        expect(res.body).to.be.a('array');
+        expect(res.body.length).to.equal(4);
+        expect(res.body[0]).to.have.property('type');
+        done();
+      });
+    });
+  });
+});
+```
+
+### Testing POST `api/v1/pizzas` and GET `api/v1/pizza/:id`
+
+Your challenge, now, if you choose to accept it is to test drive creating our other planned endpoints.
+
+```js
+// POST api/v1/pizzas - Create a pizza
+// GET api/v1/pizza/:id - Get a specific pizza
+```
+
+What do you need to know about, to get these tests going?
+
+Well
+
+- chai-http has a `.post('/api/v1/...')` and also a `.send({})`
+- don't forget that you can have [dynamic routes](http://stackoverflow.com/questions/25623041/how-to-configure-dynamic-routes-with-express-js)
+
+## Next Steps
+
+This has been a quick introduction, the next step is to convert these tests to using a real database!
+
+Check out [Test Driven Development With Node](http://mherman.org/blog/2016/04/28/test-driven-development-with-node/#.WMqRcxIrKHp) to see an implementation of just this.
