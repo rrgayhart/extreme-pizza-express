@@ -14,7 +14,7 @@ This is the _extreme_ version... meaning that we will have a few different branc
 * [Server Testing](https://github.com/rrgayhart/extreme-pizza-express/tree/server-testing) - unit tests an initial implementation of the server.
   * [Server Testing Answers](https://github.com/rrgayhart/extreme-pizza-express/tree/server-testing-answers)
 
-## Unit Testing Our Server
+## Integration Testing Our Server
 
 Alright, we have a server and we can test it by visiting the page manually. But, testing by hand gets old pretty fast. It would be nice if we could have some kind of automated testing, right? Yea, I agree. We are going to need to make some modifications to your existing little application, though.
 
