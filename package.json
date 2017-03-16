@@ -4,9 +4,8 @@
   "description": "A place to admire pizzas",
   "main": "server.js",
   "scripts": {
-    "test": "node_modules/.bin/mocha ./tests/**.js || true",
-    "lint": "node_modules/.bin/eslint public/**.js lib/**.js tests/**.js **.js || true",
-    "lintf": "node_modules/.bin/eslint public/**.js lib/**.js tests/**.js **.js  --fix || true"
+    "lint": "node_modules/.bin/eslint public/**.js lib/**.js **.js || true",
+    "lintf": "node_modules/.bin/eslint public/**.js lib/**.js **.js  --fix || true"
   },
   "repository": {
     "type": "git",
@@ -29,8 +28,6 @@
     "express": "^4.15.2"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
-    "eslint": "^3.17.1",
-    "mocha": "^3.2.0"
+    "eslint": "^3.17.1"
   }
 }
